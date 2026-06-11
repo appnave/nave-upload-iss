@@ -6,8 +6,6 @@ use Illuminate\Console\Command;
 
 /**
  * Class IssImageCommand.
- *
- * @package Bildvitta\IssUpload\Commands
  */
 class IssImageCommand extends Command
 {
@@ -25,9 +23,6 @@ class IssImageCommand extends Command
      */
     public $description = 'My command';
 
-    /**
-     * @return void
-     */
     public function handle(): void
     {
         $this->comment('All done');

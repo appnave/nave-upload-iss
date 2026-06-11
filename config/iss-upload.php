@@ -9,5 +9,5 @@ return [
         'prefix' => env('ISS_IMAGE_ROUTE_PREFIX', 'api'),
 
         'middleware' => env('ISS_IMAGE_ROUTE_MIDDLEWARE', 'hub.auth'),
-    ]
+    ],
 ];

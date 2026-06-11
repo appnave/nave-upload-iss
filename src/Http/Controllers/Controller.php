@@ -10,8 +10,6 @@ use Illuminate\Routing\Controller as BaseController;
 
 /**
  * Class Controller.
- *
- * @package Bildvitta\IssUpload\Http\Controllers
  */
 class Controller extends BaseController
 {
@@ -19,9 +17,6 @@ class Controller extends BaseController
     use DispatchesJobs;
     use ValidatesRequests;
 
-    /**
-     * @var JsonResponse
-     */
     protected JsonResponse $jsonResponse;
 
     /**

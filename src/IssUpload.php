@@ -6,8 +6,6 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * Class IssUpload.
- *
- * @package Bildvitta\IssUpload
  */
 class IssUpload implements IssUploadContract
 {
@@ -15,10 +13,6 @@ class IssUpload implements IssUploadContract
 
     /**
      * IssUpload constructor.
-     *
-     * @param  null|string  $entity
-     * @param  null|string  $filename
-     * @param  string|null  $mimeType
      */
     public function __construct(?string $entity = null, ?string $filename = null, ?string $mimeType = null)
     {
@@ -27,9 +21,6 @@ class IssUpload implements IssUploadContract
         $this->mimeType = $mimeType;
     }
 
-    /**
-     * @return array
-     */
     public function getUploadSource(): array
     {
         $storage = Storage::disk('s3');
@@ -40,21 +31,21 @@ class IssUpload implements IssUploadContract
         $key = sprintf('uploads/%s/%s', $this->entity, $this->filename);
 
         $cmd = $client->getCommand('PutObject', [
-            'ACL' => 'public-read',
-            'Bucket' => $bucket,
-            'Key' => $key,
+            'ACL'         => 'public-read',
+            'Bucket'      => $bucket,
+            'Key'         => $key,
             'ContentType' => $this->mimeType,
         ]);
 
-        $response = (string)$client->createPresignedRequest($cmd, '+10 minutes')->getUri();
+        $response = (string) $client->createPresignedRequest($cmd, '+10 minutes')->getUri();
 
         $full_path = parse_url($response);
         $full_path = sprintf('%s://%s/%s', $full_path['scheme'], $full_path['host'], $key);
 
         return [
-            'path' => $key,
+            'path'      => $key,
             'full_path' => $full_path,
-            'endpoint' => $response,
+            'endpoint'  => $response,
         ];
     }
 }
