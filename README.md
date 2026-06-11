@@ -1,162 +1,109 @@
-# This is my package IssUpload
+# Nave Upload ISS
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/bildvitta/iss-upload.svg?style=flat-square)](https://packagist.org/packages/bildvitta/iss-upload)
-[![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/bildvitta/iss-upload/run-tests?label=tests)](https://github.com/bildvitta/iss-upload/actions?query=workflow%3Arun-tests+branch%3Amaster)
-[![GitHub Code Style Action Status](https://img.shields.io/github/workflow/status/bildvitta/iss-upload/Check%20&%20fix%20styling?label=code%20style)](https://github.com/bildvitta/iss-upload/actions?query=workflow%3A"Check+%26+fix+styling"+branch%3Amaster)
-[![Total Downloads](https://img.shields.io/packagist/dt/bildvitta/iss-upload.svg?style=flat-square)](https://packagist.org/packages/bildvitta/iss-upload)
+Pacote privado da App Nave para gerar URLs pré-assinadas de upload em S3 em projetos Laravel. O consumo é feito via Composer com repositório VCS no projeto cliente.
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+## Visão geral
 
-## Installation
+- Nome do pacote: `appnave/nave-upload-iss`
+- Namespace principal: `Bildvitta\IssUpload`
+- Rotas padrão: `POST /api/upload-credentials` e `POST /api/upload`
+- Upload baseado no disk `s3` do Laravel
 
-You can install the package via composer:
+## Requisitos
 
-```bash
-composer require bildvitta/iss-upload
+- PHP 8.0+
+- Laravel compatível com `illuminate/contracts` 8, 9, 10, 11 ou 12
+- Disk `s3` configurado no projeto cliente
+- Credenciais AWS válidas
+- Acesso ao repositório privado no GitHub
+
+## Acesso aos repositórios privados
+
+No projeto cliente, adicione o repositório VCS em `composer.json`:
+
+```json
+{
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/ORG/REPO"
+    }
+  ]
+}
 ```
 
-You can publish the config file with:
+Depois instale o pacote:
+
+```bash
+composer require appnave/nave-upload-iss
+```
+
+Autenticação local do Composer com token GitHub:
+
+```bash
+composer config -g github-oauth.github.com <YOUR_TOKEN>
+```
+
+GitHub Actions:
+
+```yaml
+env:
+  COMPOSER_AUTH: >-
+    {"github-oauth":{"github.com":"${{ secrets.GH_TOKEN }}"}}
+```
+
+## Instalação local
+
+Publique a configuração do pacote:
 
 ```bash
 php artisan vendor:publish --provider="Bildvitta\IssUpload\IssUploadServiceProvider" --tag="iss-upload-config"
 ```
 
-This is the contents of the published config file:
-
-```php
-return [
-
-    'validation' => [
-        'mime_type' => env('ISS_IMAGE_VALID_MIME_TYPE', 'image/jpeg,image/gif,image/bmp,image/tiff,image/png,application/pdf'),
-    ],
-
-    'route' => [
-
-        'prefix' => env('ISS_IMAGE_ROUTE_PREFIX', 'api'),
-
-        'middleware' => env('ISS_IMAGE_ROUTE_MIDDLEWARE', 'hub.auth'),
-
-    ]
-
-];
-
-```
-
-If you want to change any settings, do so through your .env file.
+Configure o `.env` do projeto consumidor:
 
 ```dotenv
 ISS_IMAGE_ROUTE_PREFIX=api
-ISS_IMAGE_ROUTE_MIDDLEWARE="hub.auth"
+ISS_IMAGE_ROUTE_MIDDLEWARE=hub.auth
 ISS_IMAGE_VALID_MIME_TYPE="image/jpeg,image/gif,image/bmp,image/tiff,image/png,application/pdf"
 
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
 AWS_DEFAULT_REGION=us-east-1
-AWS_BUCKET=
+AWS_BUCKET=...
 ```
 
-It is mandatory to fill in AWS credential information.
+Observação:
 
-## Usage
+- O middleware padrão é `hub.auth`; ajuste essa configuração no projeto cliente se ele usar outro middleware.
+- O `mime_type` é inferido pela extensão do arquivo e validado pela configuração `ISS_IMAGE_VALID_MIME_TYPE`.
 
-The package already contains a `{prefix}/upload-credentials` and `{prefix}/upload` route by default.
+Exemplo de uso local:
 
-Below is an example in cURL requesting the upload link to AWS.
-
-````
-curl --location --request POST 'http://127.0.0.1:8001/api/upload-credentials' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "filename": "5044e35d-8cc1-4cf3-b9e6-358872f022ac.png",
+```bash
+curl --location --request POST 'http://127.0.0.1:8000/api/upload-credentials' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+    "filename": "arquivo.png",
     "entity": "realEstateDevelopmentsMedias"
-}'
-````
-
-Here is an example of an answer.
-
-````json
-{
-  "path": "uploads/realEstateDevelopmentsMedias/5044e35d-8cc1-4cf3-b9e6-358872f022ac.png",
-  "full_path": "https://s3.amazonaws.com/bucket.com.br/uploads/realEstateDevelopmentsMedias/5044e35d-8cc1-4cf3-b9e6-358872f022ac.png",
-  "endpoint": "https://s3.amazonaws.com/bucket.com.br/uploads/realEstateDevelopmentsMedias/5044e35d-8cc1-4cf3-b9e6-358872f022ac.png?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=XXXXXFus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20210430T111315Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Signature=XXXX"
-}
-````
-
-#### Custom routes
-
-You may also want to have your own upload routes, one for each form for example
-
-````php
-use Bildvitta\IssUpload\Http\Controllers\UploadController;
-
-Route::post('/upload-pdf')->name('upload_pdf')->uses(UploadController::class);
-````
-
-#### Using run time
-
-It may also happen that you want to have the upload source at any time in the request time.
-
-For any purpose you can use the code below which will have an array with the same content as the controller response
-
-Feel free to use `\Bildvitta\IssUpload\Http\Requests\UploadRequest`.
-
-```php
-use Bildvitta\IssUpload\Http\Requests\UploadRequest;
-use Bildvitta\IssUpload\IssUpload;
-use Illuminate\Http\JsonResponse;
-use App\Http\Requests\YourRequestValidator;
-
-class NewPostController extends Controller
-{
-    public function __invoke(YourRequestValidator $yourRequestValidator, UploadRequest $uploadRequest): JsonResponse
-    {
-        #TODO: Your Logic.
-        
-//        $issUpload = new IssUpload($uploadRequest->entity, ($uploadRequest->filename, $uploadRequest->mime_type);
-        
-        $issUpload = new IssUpload();
-        $issUpload->setEntity($uploadRequest->entity);
-        $issUpload->setFilename($uploadRequest->filename);
-        $issUpload->setMimeType($uploadRequest->mime_type);
-
-        dd($issUpload->getUploadSource());
-        
-        #TODO: Your Logic.
-    }
-}
+  }'
 ```
 
-The dump returns something like this.
+## Useful Commands
 
-````
-array:3 [
-  "path": "uploads/realEstateDevelopmentsMedias/5044e35d-8cc1-4cf3-b9e6-358872f022ac.png",
-  "full_path": "https://s3.amazonaws.com/bucket.com.br/uploads/realEstateDevelopmentsMedias/5044e35d-8cc1-4cf3-b9e6-358872f022ac.png",
-  "endpoint": "https://s3.amazonaws.com/bucket.com.br/uploads/realEstateDevelopmentsMedias/5044e35d-8cc1-4cf3-b9e6-358872f022ac.png?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=XXXXXFus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20210430T111315Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Signature=XXXX"
-]
-````
+- `php artisan vendor:publish --provider="Bildvitta\IssUpload\IssUploadServiceProvider" --tag="iss-upload-config"`
+- `php artisan iss-upload`
+- `composer test`
+- `composer test-coverage`
+- `composer check-style`
+- `composer fix-style`
+- `composer psalm`
 
-## Testing
+## Informações adicionais
 
-coming soon...
-
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
-
-## Credits
-
-- [SOSTheBLack](https://github.com/SOSTheBlack)
-- [All Contributors](../../contributors)
-
-## License
-
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+- Se precisar de uma rota própria, use `Bildvitta\IssUpload\Http\Controllers\UploadController`.
+- A resposta do upload contém `path`, `full_path` e `endpoint`.
+- A documentação de mudanças está em [CHANGELOG.md](CHANGELOG.md).
+- As orientações de contribuição estão em [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md).
+- A política de segurança está em [.github/SECURITY.md](.github/SECURITY.md).
+- A licença está em [LICENSE.md](LICENSE.md).
