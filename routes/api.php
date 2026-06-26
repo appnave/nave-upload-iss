@@ -7,5 +7,4 @@ $configRoute = config('iss-upload.route');
 
 Route::prefix($configRoute['prefix'])->middleware($configRoute['middleware'])->group(function () {
     Route::post('/upload-credentials')->name('upload_credentials')->uses(UploadController::class);
-    Route::post('/upload')->name('upload')->uses(UploadController::class);
 });

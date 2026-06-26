@@ -28,19 +28,24 @@ class IssUpload implements IssUploadContract
         $client = $adapter->getClient();
         $bucket = method_exists($adapter, 'getBucket') ? $adapter->getBucket() : $adapter->getConfig()['bucket'];
 
-        $key = sprintf('uploads/%s/%s', $this->entity, $this->filename);
+        $key = sprintf('%s/%s/%s', config('iss-upload.path_prefix', 'uploads'), $this->entity, $this->filename);
 
         $cmd = $client->getCommand('PutObject', [
-            'ACL'         => 'public-read',
+            'ACL'         => config('iss-upload.acl', 'public-read'),
             'Bucket'      => $bucket,
             'Key'         => $key,
             'ContentType' => $this->mimeType,
         ]);
 
-        $response = (string) $client->createPresignedRequest($cmd, '+10 minutes')->getUri();
+        $response = (string) $client->createPresignedRequest($cmd, config('iss-upload.presigned_expiry', '+10 minutes'))->getUri();
 
-        $full_path = parse_url($response);
-        $full_path = sprintf('%s://%s/%s', $full_path['scheme'], $full_path['host'], $key);
+        $parsed = parse_url($response);
+
+        if (! isset($parsed['scheme'], $parsed['host'])) {
+            throw new \RuntimeException('Invalid presigned URL returned by S3 client.');
+        }
+
+        $full_path = sprintf('%s://%s/%s', $parsed['scheme'], $parsed['host'], $key);
 
         return [
             'path'      => $key,
