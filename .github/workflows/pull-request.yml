@@ -34,3 +34,6 @@ jobs:
 
       - name: Check style
         run: composer check-style
+
+      - name: Running Tests
+        run: composer test
