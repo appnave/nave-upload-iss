@@ -2,6 +2,8 @@
 
 namespace Bildvitta\IssUpload;
 
+use Bildvitta\IssUpload\Commands\IssImageCommand;
+use Bildvitta\IssUpload\Commands\PublishConfigCommand;
 use Bildvitta\IssUpload\Http\Requests\UploadRequest;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -19,6 +21,9 @@ class IssUploadServiceProvider extends PackageServiceProvider
 
     public function configurePackage(Package $package): void
     {
-        $package->name('iss-upload')->hasConfigFile()->hasRoute('api');
+        $package->name('iss-upload')
+            ->hasConfigFile()
+            ->hasRoute('api')
+            ->hasCommands([IssImageCommand::class, PublishConfigCommand::class]);
     }
 }
