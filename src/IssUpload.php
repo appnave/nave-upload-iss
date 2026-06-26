@@ -23,7 +23,7 @@ class IssUpload implements IssUploadContract
 
     public function getUploadSource(): array
     {
-        $storage = Storage::disk('s3');
+        $storage = Storage::disk(config('iss-upload.disk', 's3'));
         $adapter = method_exists($storage->getDriver(), 'getAdapter') ? $storage->getAdapter() : $storage;
         $client = $adapter->getClient();
         $bucket = method_exists($adapter, 'getBucket') ? $adapter->getBucket() : $adapter->getConfig()['bucket'];
