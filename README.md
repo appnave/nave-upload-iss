@@ -1,20 +1,19 @@
 # Nave Upload ISS
 
-Pacote privado da App Nave para gerar URLs pré-assinadas de upload em S3 em projetos Laravel. O consumo é feito via Composer com repositório VCS no projeto cliente.
+Pacote privado da App Nave para gerar URLs pré-assinadas de upload em storages compatíveis com S3 em projetos Laravel. O consumo é feito via Composer com repositório VCS no projeto cliente.
 
 ## Visão geral
 
 - Nome do pacote: `appnave/nave-upload-iss`
 - Namespace principal: `Bildvitta\IssUpload`
-- Rotas padrão: `POST /api/upload-credentials` e `POST /api/upload`
-- Upload baseado no disk `s3` do Laravel
+- Rota padrão: `POST /api/upload-credentials`
+- Suporte a qualquer storage compatível com S3 (AWS S3, MinIO, DigitalOcean Spaces, Cloudflare R2, etc.)
 
 ## Requisitos
 
 - PHP 8.0+
 - Laravel compatível com `illuminate/contracts` 8, 9, 10, 11 ou 12
-- Disk `s3` configurado no projeto cliente
-- Credenciais AWS válidas
+- Disk S3-compatible configurado no projeto cliente
 - Acesso ao repositório privado no GitHub
 
 ## Acesso aos repositórios privados
@@ -52,57 +51,118 @@ env:
     {"github-oauth":{"github.com":"${{ secrets.GH_TOKEN }}"}}
 ```
 
-## Instalação local
+## Instalação
 
-Publique a configuração do pacote:
+### 1. Publicar a configuração
+
+Use o comando inteligente de publicação, que adiciona apenas as chaves ausentes caso o arquivo já exista:
+
+```bash
+php artisan iss-upload:publish-config
+```
+
+Ou publique via `vendor:publish` para sobrescrever o arquivo inteiro:
 
 ```bash
 php artisan vendor:publish --provider="Bildvitta\IssUpload\IssUploadServiceProvider" --tag="iss-upload-config"
 ```
 
-Configure o `.env` do projeto consumidor:
+### 2. Configurar o `.env`
 
 ```dotenv
+# Storage
+ISS_UPLOAD_DISK=s3                    # nome do disk Laravel (padrão: s3)
+ISS_UPLOAD_ACL=public-read            # ACL do objeto no S3 (padrão: public-read)
+ISS_UPLOAD_PRESIGNED_EXPIRY=+10 minutes  # validade da URL pré-assinada (padrão: +10 minutes)
+ISS_UPLOAD_PATH_PREFIX=uploads        # prefixo do caminho no bucket (padrão: uploads)
+
+# Rotas
 ISS_IMAGE_ROUTE_PREFIX=api
 ISS_IMAGE_ROUTE_MIDDLEWARE=hub.auth
+
+# Validação
 ISS_IMAGE_VALID_MIME_TYPE="image/jpeg,image/gif,image/bmp,image/tiff,image/png,application/pdf"
 
+# Credenciais AWS (ou equivalente do seu provider)
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 AWS_DEFAULT_REGION=us-east-1
 AWS_BUCKET=...
 ```
 
-Observação:
+> O middleware padrão é `hub.auth`; ajuste conforme o projeto cliente.  
+> O `mime_type` é inferido automaticamente pela extensão do arquivo.
 
-- O middleware padrão é `hub.auth`; ajuste essa configuração no projeto cliente se ele usar outro middleware.
-- O `mime_type` é inferido pela extensão do arquivo e validado pela configuração `ISS_IMAGE_VALID_MIME_TYPE`.
+## Usando um storage alternativo (MinIO, R2, Spaces…)
 
-Exemplo de uso local:
+Configure o disk desejado em `config/filesystems.php` do projeto cliente apontando para o endpoint do seu provider. Em seguida, defina `ISS_UPLOAD_DISK` com o nome desse disk:
 
-```bash
-curl --location --request POST 'http://127.0.0.1:8000/api/upload-credentials' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-    "filename": "arquivo.png",
-    "entity": "realEstateDevelopmentsMedias"
-  }'
+```dotenv
+ISS_UPLOAD_DISK=minio
 ```
 
-## Useful Commands
+```php
+// config/filesystems.php
+'minio' => [
+    'driver'   => 's3',
+    'key'      => env('MINIO_ACCESS_KEY_ID'),
+    'secret'   => env('MINIO_SECRET_ACCESS_KEY'),
+    'region'   => env('MINIO_DEFAULT_REGION', 'us-east-1'),
+    'bucket'   => env('MINIO_BUCKET'),
+    'endpoint' => env('MINIO_ENDPOINT'),
+    'use_path_style_endpoint' => true,
+],
+```
 
-- `php artisan vendor:publish --provider="Bildvitta\IssUpload\IssUploadServiceProvider" --tag="iss-upload-config"`
-- `php artisan iss-upload`
-- `composer test`
-- `composer test-coverage`
-- `composer check-style`
-- `composer fix-style`
-- `composer psalm`
+## Resposta da API
+
+`POST /api/upload-credentials`
+
+**Request:**
+
+```json
+{
+  "filename": "arquivo.png",
+  "entity": "realEstateDevelopmentsMedias"
+}
+```
+
+**Response `200`:**
+
+```json
+{
+  "path": "uploads/realEstateDevelopmentsMedias/arquivo.png",
+  "full_path": "https://bucket.s3.amazonaws.com/uploads/realEstateDevelopmentsMedias/arquivo.png",
+  "endpoint": "https://bucket.s3.amazonaws.com/uploads/realEstateDevelopmentsMedias/arquivo.png?X-Amz-Algorithm=..."
+}
+```
+
+| Campo | Descrição |
+|---|---|
+| `path` | Chave do objeto no bucket |
+| `full_path` | URL pública do arquivo após o upload |
+| `endpoint` | URL pré-assinada para o upload direto (válida por `ISS_UPLOAD_PRESIGNED_EXPIRY`) |
+
+## Comandos Artisan
+
+| Comando | Descrição |
+|---|---|
+| `php artisan iss-upload:publish-config` | Publica o config adicionando apenas chaves ausentes se o arquivo já existir |
+| `php artisan iss-upload:check` | Exibe a configuração atual e testa a conectividade com o storage |
+
+## Outros comandos
+
+```bash
+composer test
+composer test-coverage
+composer check-style
+composer fix-style
+composer psalm
+```
 
 ## Informações adicionais
 
 - Se precisar de uma rota própria, use `Bildvitta\IssUpload\Http\Controllers\UploadController`.
-- A resposta do upload contém `path`, `full_path` e `endpoint`.
 - A documentação de mudanças está em [CHANGELOG.md](CHANGELOG.md).
 - As orientações de contribuição estão em [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md).
 - A política de segurança está em [.github/SECURITY.md](.github/SECURITY.md).
