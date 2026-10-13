@@ -70,6 +70,7 @@ class UploadRequestTest extends TestCase
             $this->rules()
         );
 
+
         $this->assertFalse($validator->fails());
     }
 
