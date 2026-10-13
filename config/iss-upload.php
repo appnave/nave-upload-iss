@@ -3,7 +3,7 @@
 return [
     'disk' => env('ISS_UPLOAD_DISK', 's3'),
 
-    'acl' => env('ISS_UPLOAD_ACL', 'public-read'),
+    'acl' => env('ISS_UPLOAD_ACL'),
 
     'presigned_expiry' => env('ISS_UPLOAD_PRESIGNED_EXPIRY', '+10 minutes'),
 
