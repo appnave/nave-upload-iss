@@ -18,7 +18,7 @@ class IssImageCommand extends Command
         $this->line('');
 
         $disk = config('iss-upload.disk', 's3');
-        $acl = config('iss-upload.acl', 'public-read');
+        $acl = config('iss-upload.acl');
         $expiry = config('iss-upload.presigned_expiry', '+10 minutes');
         $prefix = config('iss-upload.path_prefix', 'uploads');
 

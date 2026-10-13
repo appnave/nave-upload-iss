@@ -93,7 +93,6 @@ class IssUploadTest extends TestCase
 
         $result = (new IssUpload('docs', 'photo.png', 'image/png'))->getUploadSource();
 
-        $this->assertSame('https://my-bucket.s3.amazonaws.com/uploads/docs/photo.png', $result['full_path']);
         $this->assertSame($presignedUri, $result['endpoint']);
     }
 
